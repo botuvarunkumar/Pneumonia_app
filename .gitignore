@@ -30,9 +30,7 @@ Thumbs.db
 
 # Model Checkpoints / Outputs
 *.onnx
-*.h5
-*.keras
-saved_model/
+
 
 # Misc
 *.zip
