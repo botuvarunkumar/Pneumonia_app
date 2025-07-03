@@ -2,6 +2,7 @@ fastapi==0.115.2
 uvicorn==0.32.0
 pillow==11.0.0
 opencv-python==4.10.0.84
-tensorflow==2.17.0; python_version < '3.12'
+tensorflow==2.17.0; python_version >= '3.8' and python_version < '3.12'
 numpy==1.26.4
 efficientnet==1.1.1
+
