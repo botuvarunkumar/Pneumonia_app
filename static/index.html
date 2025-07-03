@@ -1,108 +1,114 @@
 <!DOCTYPE html>
-     <html lang="en">
-     <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <meta name="theme-color" content="#667eea">
-       <title>Pneumonia Detection</title>
-       <link rel="manifest" href="/static/manifest.json">
-       <link rel="icon" href="/static/favicon.ico">
-       <link rel="icon" href="/static/icons/icon-192x192.png">
-       <style>
-         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f0f0; }
-         .container { max-width: 800px; margin: 0 auto; text-align: center; }
-         .upload-box { border: 2px dashed #667eea; padding: 20px; margin: 20px 0; }
-         .preview { max-width: 300px; margin: 10px 0; }
-         #result, #offline-message { display: block; margin-top: 20px; } /* Changed from display: none */
-         #offline-message { color: red; }
-         button { background-color: #667eea; color: white; padding: 10px 20px; border: none; cursor: pointer; }
-         button:disabled { background-color: #cccccc; cursor: not-allowed; }
-       </style>
-     </head>
-     <body>
-       <div class="container">
-         <h1>Pneumonia Detection</h1>
-         <div class="upload-box">
-           <input type="file" id="imageInput" accept="image/*" multiple>
-           <p>Upload chest X-ray image(s) (JPEG, PNG)</p>
-         </div>
-         <button id="predictButton" onclick="predict()">Analyze Image(s)</button>
-         <div id="offline-message">You are offline. Image analysis is unavailable, but the UI is accessible.</div>
-         <div id="result"></div>
-         <img id="preview" class="preview" style="display: none;">
-       </div>
-       <script>
-         const backendUrl = 'https://pneumonia-prediction-0z5f.onrender.com';
-         window.addEventListener('load', () => {
-           if ('serviceWorker' in navigator) {
-             navigator.serviceWorker.register('/static/service-worker.js')
-               .then(reg => console.log('Service Worker registered'))
-               .catch(err => console.error('Service Worker registration failed:', err));
-           }
-           checkOnlineStatus();
-         });
-         window.addEventListener('online', checkOnlineStatus);
-         window.addEventListener('offline', checkOnlineStatus);
-         function checkOnlineStatus() {
-           const offlineMessage = document.getElementById('offline-message');
-           const predictButton = document.getElementById('predictButton');
-           if (!navigator.onLine) {
-             offlineMessage.style.display = 'block';
-             predictButton.disabled = true;
-           } else {
-             offlineMessage.style.display = 'none';
-             predictButton.disabled = false;
-           }
-         }
-         async function predict() {
-           console.log("Predict function called");
-           const input = document.getElementById('imageInput');
-           const resultDiv = document.getElementById('result');
-           const preview = document.getElementById('preview');
-           if (!input.files || input.files.length === 0) {
-             resultDiv.innerHTML = '<p>Please select at least one image.</p>';
-             console.log("No files selected");
-             return;
-           }
-           if (!navigator.onLine) {
-             resultDiv.innerHTML = '<p>Offline: Cannot analyze images.</p>';
-             console.log("Offline mode");
-             return;
-           }
-           resultDiv.innerHTML = '<p>Analyzing...</p>';
-           preview.style.display = 'none';
-           const formData = new FormData();
-           if (input.files.length === 1) {
-             formData.append('file', input.files[0]);
-             preview.src = URL.createObjectURL(input.files[0]);
-             preview.style.display = 'block';
-             console.log("Sending single file to /predict");
-             try {
-               const response = await fetch(`${backendUrl}/predict`, {
-                 method: 'POST',
-                 body: formData
-               });
-               console.log("Response status:", response.status);
-               const result = await response.json();
-               console.log("Response data:", result);
-               if (result.success) {
-                 resultDiv.innerHTML = `
-                   <p><strong>Prediction:</strong> ${result.prediction}</p>
-                   <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(2)}%</p>
-                   <p><strong>Probabilities:</strong> NORMAL: ${(result.probability.NORMAL * 100).toFixed(2)}%, PNEUMONIA: ${(result.probability.PNEUMONIA * 100).toFixed(2)}%</p>
-                   <p><strong>Filename:</strong> ${result.filename}</p>
-                 `;
-               } else {
-                 resultDiv.innerHTML = `<p>Error: ${result.error}</p>`;
-               }
-             } catch (error) {
-               resultDiv.innerHTML = `<p>Error: ${error.message}</p>';
-               console.log("Fetch error:", error);
-             }
-           } else {
-             // Batch predict logic...
-           }
-         }
-       </script>
-     </body>
-     </html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#667eea">
+  <title>Pneumonia Detection</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" href="/static/favicon.ico">
+  <link rel="icon" href="/static/icons/icon-192x192.png">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f0f0; }
+    .container { max-width: 800px; margin: 0 auto; text-align: center; display: block !important; }
+    .upload-box { border: 2px dashed #667eea; padding: 20px; margin: 20px 0; display: block !important; }
+    .preview { max-width: 300px; margin: 10px 0; }
+    #result, #offline-message { display: block; margin-top: 20px; opacity: 1 !important; visibility: visible !important; }
+    #offline-message { color: red; }
+    button { background-color: #667eea; color: white; padding: 10px 20px; border: none; cursor: pointer; display: block !important; }
+    button:disabled { background-color: #cccccc; cursor: not-allowed; }
+    .copyright { font-size: 12px; color: #666; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pneumonia Detection</h1>
+    <div class="upload-box">
+      <input type="file" id="imageInput" accept="image/*" multiple>
+      <p>Upload chest X-ray image(s) (JPEG, PNG)</p>
+    </div>
+    <button id="predictButton" onclick="predict()">Analyze Image(s)</button>
+    <div id="offline-message">You are offline. Image analysis is unavailable, but the UI is accessible.</div>
+    <div id="result"></div>
+    <img id="preview" class="preview" style="display: none;">
+    <div class="copyright">© 2025 BOTU VARUN KUMAR. All rights reserved.</div>
+  </div>
+  <script>
+    const backendUrl = 'https://pneumonia-prediction-0z5f.onrender.com';
+    window.addEventListener('load', () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/service-worker.js')
+          .then(reg => console.log('Service Worker registered'))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      }
+      checkOnlineStatus();
+    });
+    window.addEventListener('online', checkOnlineStatus);
+    window.addEventListener('offline', checkOnlineStatus);
+    function checkOnlineStatus() {
+      const offlineMessage = document.getElementById('offline-message');
+      const predictButton = document.getElementById('predictButton');
+      if (!navigator.onLine) {
+        offlineMessage.style.display = 'block';
+        predictButton.disabled = true;
+      } else {
+        offlineMessage.style.display = 'none';
+        predictButton.disabled = false;
+      }
+    }
+    async function predict() {
+      console.log("Predict function called");
+      const input = document.getElementById('imageInput');
+      const resultDiv = document.getElementById('result');
+      const preview = document.getElementById('preview');
+      if (!input.files || input.files.length === 0) {
+        resultDiv.innerHTML = '<p>Please select at least one image.</p>';
+        console.log("No files selected");
+        return;
+      }
+      if (!navigator.onLine) {
+        resultDiv.innerHTML = '<p>Offline: Cannot analyze images.</p>';
+        console.log("Offline mode");
+        return;
+      }
+      resultDiv.innerHTML = '<p>Analyzing...</p>';
+      preview.style.display = 'none';
+      const formData = new FormData();
+      if (input.files.length === 1) {
+        formData.append('file', input.files[0]);
+        preview.src = URL.createObjectURL(input.files[0]);
+        preview.style.display = 'block';
+        console.log("Sending single file to /predict");
+        try {
+          const response = await fetch(`${backendUrl}/predict`, {
+            method: 'POST',
+            body: formData
+          });
+          console.log("Response status:", response.status);
+          const result = await response.json();
+          console.log("Response data:", result);
+          if (result.success) {
+            resultDiv.innerHTML = `
+              <p><strong>Prediction:</strong> ${result.prediction}</p>
+              <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(2)}%</p>
+              <p><strong>Probabilities:</strong> NORMAL: ${(result.probability.NORMAL * 100).toFixed(2)}%, PNEUMONIA: ${(result.probability.PNEUMONIA * 100).toFixed(2)}%</p>
+              <p><strong>Filename:</strong> ${result.filename}</p>
+            `;
+            resultDiv.style.opacity = '0';
+            setTimeout(() => {
+              resultDiv.style.opacity = '1'; // Fade in for visibility
+            }, 0);
+          } else {
+            resultDiv.innerHTML = `<p>Error: ${result.error}</p>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+          console.log("Fetch error:", error);
+        }
+      } else {
+        // Batch predict logic...
+      }
+    }
+  </script>
+</body>
+</html>
