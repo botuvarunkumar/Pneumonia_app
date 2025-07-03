@@ -8,9 +8,9 @@ import numpy as np
 from PIL import Image
 import cv2
 from typing import Dict, Any
+import urllib.request
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -47,7 +47,7 @@ model = None
 IMG_SIZE = 224
 CLASS_NAMES = ['NORMAL', 'PNEUMONIA']
 MODEL_PATH = os.getenv("MODEL_PATH", "initial_efficientnet.h5")
-
+MODEL_URL = os.getenv("MODEL_URL", "https://drive.google.com/uc?export=download&id=1czxP-ONHkkNFi2rHfKXag1m8r_zUaBBK")
 
 def create_efficientnet_model(img_size: int = 224) -> tf.keras.Model:
     """
@@ -85,11 +85,16 @@ def create_efficientnet_model(img_size: int = 224) -> tf.keras.Model:
 
     return model
 
-
 def load_model():
     """Load the trained model"""
     global model
     try:
+        # Download model if it doesn't exist
+        if MODEL_URL and not os.path.exists(MODEL_PATH):
+            print(f"Downloading model from {MODEL_URL}...")
+            urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+            print(f"Model downloaded to {MODEL_PATH}")
+
         if os.path.exists(MODEL_PATH):
             model = tf.keras.models.load_model(MODEL_PATH)
             print(f"Model loaded successfully from {MODEL_PATH}")
@@ -100,7 +105,6 @@ def load_model():
     except Exception as e:
         print(f"Error loading model: {e}")
         model = create_efficientnet_model(IMG_SIZE)
-
 
 def preprocess_image(image: Image.Image) -> np.ndarray:
     """
@@ -124,12 +128,10 @@ def preprocess_image(image: Image.Image) -> np.ndarray:
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error preprocessing image: {str(e)}")
 
-
 @app.on_event("startup")
 async def startup_event():
     """Load model on startup"""
     load_model()
-
 
 @app.get("/")
 async def root():
@@ -142,7 +144,6 @@ async def root():
         "web_interface": "/static/index.html"
     }
 
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -153,7 +154,6 @@ async def health_check():
         "image_size": f"{IMG_SIZE}x{IMG_SIZE}",
         "classes": CLASS_NAMES
     }
-
 
 @app.post("/predict")
 async def predict_pneumonia(file: UploadFile = File(...)) -> Dict[str, Any]:
@@ -194,7 +194,6 @@ async def predict_pneumonia(file: UploadFile = File(...)) -> Dict[str, Any]:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
-
 
 @app.post("/batch_predict")
 async def batch_predict(files: list[UploadFile] = File(...)) -> Dict[str, Any]:
@@ -257,7 +256,6 @@ async def batch_predict(files: list[UploadFile] = File(...)) -> Dict[str, Any]:
         "model_format": "TensorFlow"
     }
 
-
 @app.get("/model_info")
 async def get_model_info():
     """Get model information"""
@@ -271,7 +269,6 @@ async def get_model_info():
         "classes": CLASS_NAMES,
         "total_params": model.count_params() if hasattr(model, 'count_params') else None
     }
-
 
 if __name__ == "__main__":
     uvicorn.run(
